@@ -10,15 +10,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const SidebarWidth = 36
+
 type Model struct {
 	config config.Config
 	table  table.Model
-	repo   manifestfetcher.Response
+	focus  bool
 }
 
 func New() Model {
 	columns := []table.Column{
-		{Title: "Registries", Width: 36},
+		{Title: "Registries", Width: SidebarWidth},
 	}
 	t := table.New(table.WithColumns(columns), table.WithFocused(true))
 	s := table.DefaultStyles()
@@ -33,6 +35,7 @@ func New() Model {
 	t.SetStyles(s)
 	return Model{
 		table: t,
+		focus: true,
 	}
 }
 
@@ -44,22 +47,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.table.SetHeight(msg.Height/2 - 2)
+		margin := 4
+		if msg.Height%2 != 0 {
+			margin = 3
+		}
+		m.table.SetHeight((msg.Height - margin) / 2)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
 			cmds = append(cmds, manifestfetcher.GetManifest(m.table.SelectedRow()[0]))
+			m.focus = false
 		}
 	case config.Config:
 		m.config = msg
 		rows := []table.Row{}
 		for key := range m.config.Entries {
 			rows = append(rows, table.Row{key})
+			rows = append(rows, table.Row{key})
 		}
 		m.table.SetRows(rows)
 		fmt.Printf("Rows: %v\n", rows)
-	case manifestfetcher.Response:
-		m.repo = msg
 	}
 
 	var cmd tea.Cmd
@@ -69,18 +76,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View returns the view.
 func (m Model) View() string {
 	var s string
-	s += lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		Render(m.table.View())
-	s += "\n"
-	for _, category := range m.repo.Categories {
-		for _, block := range category.Blocks {
-			s += fmt.Sprintf("%s/%s\n", category.Name, block.Name)
-		}
+	if m.focus {
+		s += lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("140")).
+			Render(m.table.View())
+	} else {
+		s += lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Render(m.table.View())
 	}
 	return s
+}
+
+func (m *Model) Focus() {
+	m.focus = true
+}
+
+func (m *Model) Blur() {
+	m.focus = false
 }

@@ -29,7 +29,7 @@ func GetManifest(provider string) tea.Cmd {
 			return err
 		}
 
-		var response Response
+		var response ManifestResponse
 		err = json.Unmarshal(body, &response)
 		if err != nil {
 			return err
@@ -57,6 +57,6 @@ type Category struct {
 	Blocks []Block `json:"blocks"`
 }
 
-type Response struct {
+type ManifestResponse struct {
 	Categories []Category `json:"categories"`
 }
