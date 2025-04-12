@@ -60,6 +60,5 @@ func LoadConfig() tea.Msg {
 		}
 		loadedconfig.Entries[strings.Replace(key, "-state", "", 1)] = entry
 	}
-	fmt.Printf("Loaded config: %v\n", loadedconfig)
 	return loadedconfig
 }

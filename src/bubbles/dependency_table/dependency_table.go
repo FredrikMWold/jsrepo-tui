@@ -1,11 +1,11 @@
-package dependencytable
+package dependency_table
 
 import (
-	blocklist "jsrepo-tui/BlockList"
-	manifestfetcher "jsrepo-tui/ManifestFetcher"
-	registryselector "jsrepo-tui/RegistrySelector"
-	selectedblocklist "jsrepo-tui/SelectedBlockList"
-	"jsrepo-tui/helpers"
+	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/bubbles/block_list"
+	"jsrepo-tui/src/bubbles/registry_selector"
+	"jsrepo-tui/src/bubbles/selected_block_list"
+	"jsrepo-tui/src/helpers"
 	"slices"
 	"sort"
 
@@ -16,7 +16,7 @@ import (
 
 func New() Model {
 	columns := []table.Column{
-		{Title: "Dependencies", Width: registryselector.SidebarWidth},
+		{Title: "Dependencies", Width: registry_selector.SidebarWidth},
 	}
 	t := table.New(table.WithColumns(columns), table.WithFocused(false))
 	s := table.Styles{
@@ -36,7 +36,7 @@ func New() Model {
 
 type Model struct {
 	table table.Model
-	data  []manifestfetcher.Block
+	data  []manifest.Block
 }
 
 func (m Model) Init() tea.Cmd {
@@ -49,8 +49,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.table.SetHeight(msg.Height/2 - 2)
-	case blocklist.ListItem:
-		isDuplicate := slices.ContainsFunc(m.data, func(item manifestfetcher.Block) bool {
+	case block_list.ListItem:
+		isDuplicate := slices.ContainsFunc(m.data, func(item manifest.Block) bool {
 			return item.Name == msg.Block.Name
 		})
 		if !isDuplicate {
@@ -69,8 +69,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		m.table.SetRows(rows)
-	case selectedblocklist.RemoveBlock:
-		var blocks []manifestfetcher.Block
+	case selected_block_list.RemoveBlock:
+		var blocks []manifest.Block
 		for _, block := range m.data {
 			if block.Name != msg.Name {
 				blocks = append(blocks, block)

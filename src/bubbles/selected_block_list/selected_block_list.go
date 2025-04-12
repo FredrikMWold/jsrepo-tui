@@ -1,9 +1,9 @@
-package selectedblocklist
+package selected_block_list
 
 import (
-	blocklist "jsrepo-tui/BlockList"
-	manifestfetcher "jsrepo-tui/ManifestFetcher"
-	registryselector "jsrepo-tui/RegistrySelector"
+	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/bubbles/block_list"
+	"jsrepo-tui/src/bubbles/registry_selector"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type RemoveBlock manifestfetcher.Block
+type RemoveBlock manifest.Block
 
 const (
 	listView = iota
@@ -58,19 +58,28 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyBackspace:
+			listHasItems := m.listView.Items() != nil && len(m.listView.Items()) > 0
 			if m.active == filePickerView {
 				m.active = listView
 				m.filePickerView.CurrentDirectory, _ = os.Getwd()
 				return m, nil
 			}
-			selectedItem := m.listView.SelectedItem().(blocklist.ListItem)
+			if !listHasItems {
+				return m, nil
+			}
+			selectedItem := m.listView.SelectedItem().(block_list.ListItem)
 			m.listView.RemoveItem(m.listView.Index())
 			return m, RemoveItem(selectedItem.Block)
 		case tea.KeyEnter:
-			if m.active == listView {
+			listHasItems := m.listView.Items() != nil && len(m.listView.Items()) > 0
+			if m.active == listView && listHasItems {
 				m.active = filePickerView
 				return m, m.filePickerView.Init()
 			}
+			if !listHasItems {
+				return m, nil
+			}
+
 		case tea.KeyEsc:
 			if m.active == filePickerView {
 				m.active = listView
@@ -79,9 +88,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 
-	case blocklist.ListItem:
+	case block_list.ListItem:
 		isDuplicate := slices.ContainsFunc(m.listView.Items(), func(item list.Item) bool {
-			return item.(blocklist.ListItem).Title() == msg.Title()
+			return item.(block_list.ListItem).Title() == msg.Title()
 		})
 		if !isDuplicate {
 			cmd = m.listView.InsertItem(-1, msg)
@@ -93,7 +102,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.Width%2 != 0 {
 			margin = 3
 		}
-		m.listView.SetWidth((msg.Width-registryselector.SidebarWidth)/2 - margin)
+		m.listView.SetWidth((msg.Width-registry_selector.SidebarWidth)/2 - margin)
 		m.listView.SetHeight(msg.Height - 2)
 		m.filePickerView.Height = msg.Height - 3
 		return m, nil
@@ -113,12 +122,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, nil
 			}
 			currentIndex := m.listView.Index()
-			currentItem := m.listView.SelectedItem().(blocklist.ListItem)
+			currentItem := m.listView.SelectedItem().(block_list.ListItem)
 			m.listView.RemoveItem(m.listView.Index())
-			m.listView.InsertItem(currentIndex, blocklist.ListItem{
-				Block: currentItem.Block,
-				Name:  currentItem.Name,
-				Path:  "." + string(os.PathSeparator) + relativePath,
+			m.listView.InsertItem(currentIndex, block_list.ListItem{
+				Block:    currentItem.Block,
+				Name:     currentItem.Name,
+				Category: "." + string(os.PathSeparator) + relativePath,
 			})
 			m.filePickerView.CurrentDirectory, _ = os.Getwd()
 			m.active = listView
@@ -164,7 +173,12 @@ func (m *Model) Blur() {
 	m.focus = false
 }
 
-func RemoveItem(item manifestfetcher.Block) tea.Cmd {
+func (m *Model) SetHeight(height int) {
+	m.listView.SetHeight(height - 2)
+	m.filePickerView.Height = height - 3
+}
+
+func RemoveItem(item manifest.Block) tea.Cmd {
 	return func() tea.Msg {
 		return RemoveBlock(item)
 	}

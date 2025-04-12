@@ -1,9 +1,8 @@
-package registryselector
+package registry_selector
 
 import (
-	"fmt"
-	config "jsrepo-tui/Config"
-	manifestfetcher "jsrepo-tui/ManifestFetcher"
+	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/config"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -55,7 +54,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			cmds = append(cmds, manifestfetcher.GetManifest(m.table.SelectedRow()[0]))
+			cmds = append(cmds, manifest.GetManifest(m.table.SelectedRow()[0]))
 			m.focus = false
 		}
 	case config.Config:
@@ -63,10 +62,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		rows := []table.Row{}
 		for key := range m.config.Entries {
 			rows = append(rows, table.Row{key})
-			rows = append(rows, table.Row{key})
 		}
 		m.table.SetRows(rows)
-		fmt.Printf("Rows: %v\n", rows)
 	}
 
 	var cmd tea.Cmd

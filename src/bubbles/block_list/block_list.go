@@ -1,8 +1,8 @@
-package blocklist
+package block_list
 
 import (
-	manifestfetcher "jsrepo-tui/ManifestFetcher"
-	registryselector "jsrepo-tui/RegistrySelector"
+	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/bubbles/registry_selector"
 	"os"
 	"strings"
 
@@ -12,19 +12,19 @@ import (
 )
 
 type Model struct {
-	repo  manifestfetcher.ManifestResponse
+	repo  manifest.ManifestResponse
 	focus bool
 	list  list.Model
 }
 
 type ListItem struct {
-	Name  string
-	Path  string
-	Block manifestfetcher.Block
+	Name     string
+	Category string
+	Block    manifest.Block
 }
 
 func (i ListItem) Title() string       { return i.Name }
-func (i ListItem) Description() string { return i.Path }
+func (i ListItem) Description() string { return i.Category }
 func (i ListItem) FilterValue() string { return i.Name }
 
 func New() Model {
@@ -57,22 +57,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			cmds = append(cmds, addBlock(m.list.SelectedItem().(ListItem)))
 			return m, tea.Batch(cmds...)
 		}
-	case manifestfetcher.ManifestResponse:
+	case manifest.ManifestResponse:
 		m.repo = msg
 		items := []list.Item{}
 		for _, value := range m.repo.Categories {
 			for _, block := range value.Blocks {
 				items = append(items, ListItem{
-					Name:  block.Name,
-					Path:  block.Directory,
-					Block: block,
+					Name:     block.Name,
+					Category: block.Category,
+					Block:    block,
 				})
 			}
 		}
 		m.list.SetItems(items)
 		m.focus = true
 	case tea.WindowSizeMsg:
-		m.list.SetWidth((msg.Width - registryselector.SidebarWidth - 8) / 2)
+		m.list.SetWidth((msg.Width-registry_selector.SidebarWidth)/2 - 4)
 		m.list.SetHeight(msg.Height - 2)
 		return m, nil
 
@@ -103,9 +103,9 @@ func (m Model) View() string {
 func addBlock(block ListItem) tea.Cmd {
 	return func() tea.Msg {
 		return ListItem{
-			Name:  block.Name,
-			Path:  "." + string(os.PathSeparator) + block.Path,
-			Block: block.Block,
+			Name:     block.Name,
+			Category: "." + string(os.PathSeparator) + block.Category,
+			Block:    block.Block,
 		}
 	}
 }
@@ -118,6 +118,10 @@ func (m *Model) Blur() {
 	m.focus = false
 }
 
+func (m *Model) SetHeight(height int) {
+	m.list.SetHeight(height - 2)
+}
+
 func (m Model) getLocalDependencies() []ListItem {
 	var localDependencies []ListItem
 	for _, localDependency := range m.list.SelectedItem().(ListItem).Block.LocalDependencies {
@@ -126,9 +130,9 @@ func (m Model) getLocalDependencies() []ListItem {
 			for _, block := range category.Blocks {
 				if block.Name == blockName {
 					localDependencies = append(localDependencies, ListItem{
-						Name:  block.Name,
-						Path:  block.Directory,
-						Block: block,
+						Name:     block.Name,
+						Category: block.Category,
+						Block:    block,
 					})
 				}
 			}

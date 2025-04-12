@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	blocklist "jsrepo-tui/BlockList"
-	config "jsrepo-tui/Config"
-	dependencytable "jsrepo-tui/DependencyTable"
-	manifestfetcher "jsrepo-tui/ManifestFetcher"
-	registryselector "jsrepo-tui/RegistrySelector"
-	selectedblocklist "jsrepo-tui/SelectedBlockList"
+	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/bubbles/block_list"
+	"jsrepo-tui/src/bubbles/dependency_table"
+	"jsrepo-tui/src/bubbles/registry_selector"
+	"jsrepo-tui/src/bubbles/selected_block_list"
+	"jsrepo-tui/src/config"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,10 +21,11 @@ const (
 )
 
 type model struct {
-	registryselector registryselector.Model
-	blocklist        blocklist.Model
-	selectedBlocks   selectedblocklist.Model
-	dependencytable  dependencytable.Model
+	registryselector registry_selector.Model
+	blocklist        block_list.Model
+	selectedBlocks   selected_block_list.Model
+	dependencytable  dependency_table.Model
+	width            int
 	active           int
 }
 
@@ -59,22 +60,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.blocklist.Blur()
 			m.selectedBlocks.Blur()
 		}
-	case blocklist.ListItem:
+	case block_list.ListItem:
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
 		m.dependencytable, _ = m.dependencytable.Update(msg)
 		return m, nil
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.dependencytable, _ = m.dependencytable.Update(msg)
 		return m, nil
-	case manifestfetcher.ManifestResponse:
+	case manifest.ManifestResponse:
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.active = listView
 		return m, nil
-	case selectedblocklist.RemoveBlock:
+	case selected_block_list.RemoveBlock:
 		m.dependencytable, _ = m.dependencytable.Update(msg)
 		return m, nil
 	}
@@ -95,15 +97,42 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return lipgloss.JoinHorizontal(lipgloss.Left, lipgloss.JoinVertical(lipgloss.Left, m.registryselector.View(), m.dependencytable.View()), lipgloss.JoinHorizontal(lipgloss.Left, m.blocklist.View(), m.selectedBlocks.View()))
+	var testHeader string
+	testHeader = lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Width(m.width - lipgloss.Width(m.dependencytable.View()) - 2).
+		Render("test header \ntest\ntest\ntest\ntest\ntest\ntest\ntest")
+	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - lipgloss.Height(testHeader))
+	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - lipgloss.Height(testHeader))
+
+	sidebar := lipgloss.JoinVertical(
+		lipgloss.Left,
+		m.registryselector.View(),
+		m.dependencytable.View(),
+	)
+
+	dashboard := lipgloss.JoinVertical(lipgloss.Left,
+		testHeader,
+		lipgloss.JoinHorizontal(lipgloss.Bottom,
+			m.blocklist.View(),
+			m.selectedBlocks.View(),
+		))
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Bottom,
+		sidebar,
+		dashboard,
+	)
+
 }
 
 func main() {
 	p := tea.NewProgram(model{
-		registryselector: registryselector.New(),
-		blocklist:        blocklist.New(),
-		selectedBlocks:   selectedblocklist.New(),
-		dependencytable:  dependencytable.New(),
+		registryselector: registry_selector.New(),
+		blocklist:        block_list.New(),
+		selectedBlocks:   selected_block_list.New(),
+		dependencytable:  dependency_table.New(),
 	}, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
