@@ -10,6 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type ManifestNotFoundError string
+
 func GetManifest(provider string) tea.Cmd {
 	return func() tea.Msg {
 		url := strings.Replace(provider, "github", "https://raw.githubusercontent.com/", 1)
@@ -24,7 +26,12 @@ func GetManifest(provider string) tea.Cmd {
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
+			fmt.Print(err)
 			return err
+		}
+
+		if resp.StatusCode == 404 {
+			return ManifestNotFoundError("Manifest not found")
 		}
 
 		var response ManifestResponse

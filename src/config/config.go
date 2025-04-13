@@ -3,13 +3,47 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/viper"
 )
 
-type ConfigEntry struct {
+type Config struct {
+	Registries []string `mapstructure:"registries"`
+}
+
+func LoadConfig() tea.Msg {
+	var config Config
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatalf("Error getting user config directory: %v", err)
+	}
+
+	configPath := filepath.Join(configDir)
+	viper.AddConfigPath(configPath)
+	viper.SetConfigName("jsrepo-tui.json")
+	viper.SetConfigType("json")
+	viper.SetDefault("registries", []string{})
+
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Error reading config file:", err)
+		if err := viper.SafeWriteConfig(); err != nil {
+			log.Fatalf("Error writing default config to file: %v", err)
+		}
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatalf("Unable to decode config into struct: %v", err)
+	}
+	return config
+}
+
+type JsrepoCacheEntry struct {
 	Schema       string            `json:"$schema"`
 	IncludeTests bool              `json:"includeTests"`
 	Watermark    bool              `json:"watermark"`
@@ -17,11 +51,11 @@ type ConfigEntry struct {
 	Repos        []string          `json:"repos"`
 }
 
-type Config struct {
-	Entries map[string]ConfigEntry `json:"entries"`
+type JsrepoCache struct {
+	Entries map[string]JsrepoCacheEntry `json:"entries"`
 }
 
-func LoadConfig() tea.Msg {
+func LoadConfig2() tea.Msg {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		fmt.Println("Error getting user config dir:", err)
@@ -42,8 +76,8 @@ func LoadConfig() tea.Msg {
 		return err
 	}
 
-	loadedconfig := Config{
-		Entries: make(map[string]ConfigEntry),
+	loadedconfig := JsrepoCache{
+		Entries: make(map[string]JsrepoCacheEntry),
 	}
 
 	for key, value := range rawConfig {
@@ -53,7 +87,7 @@ func LoadConfig() tea.Msg {
 		if !strings.Contains(key, "-state") {
 			continue
 		}
-		var entry ConfigEntry
+		var entry JsrepoCacheEntry
 		if err := json.Unmarshal(value, &entry); err != nil {
 			fmt.Printf("Error unmarshalling entry for key %s: %v\n", key, err)
 			return err

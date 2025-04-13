@@ -54,7 +54,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			for _, item := range m.getLocalDependencies() {
 				cmds = append(cmds, addBlock(item))
 			}
-			cmds = append(cmds, addBlock(m.list.SelectedItem().(ListItem)))
+			if m.list.SelectedItem() != nil {
+				cmds = append(cmds, addBlock(m.list.SelectedItem().(ListItem)))
+			}
 			return m, tea.Batch(cmds...)
 		}
 	case manifest.ManifestResponse:
@@ -124,6 +126,9 @@ func (m *Model) SetHeight(height int) {
 
 func (m Model) getLocalDependencies() []ListItem {
 	var localDependencies []ListItem
+	if m.list.SelectedItem() == nil {
+		return localDependencies
+	}
 	for _, localDependency := range m.list.SelectedItem().(ListItem).Block.LocalDependencies {
 		blockName := strings.Split(localDependency, "/")[len(strings.Split(localDependency, "/"))-1]
 		for _, category := range m.repo.Categories {

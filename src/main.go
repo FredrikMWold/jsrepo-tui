@@ -10,14 +10,17 @@ import (
 	"jsrepo-tui/src/config"
 	"os"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/viper"
 )
 
 const (
 	selector = iota
 	listView
 	selectedBlocks
+	newRegistryInput
 )
 
 type model struct {
@@ -25,6 +28,7 @@ type model struct {
 	blocklist        block_list.Model
 	selectedBlocks   selected_block_list.Model
 	dependencytable  dependency_table.Model
+	newRegistryInput textinput.Model
 	width            int
 	active           int
 }
@@ -52,13 +56,42 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.blocklist.Focus()
 				m.selectedBlocks.Blur()
 			}
+		case tea.KeyEsc:
+			if m.active == newRegistryInput {
+				m.active = selector
+				m.registryselector.Focus()
+				m.blocklist.Blur()
+				m.selectedBlocks.Blur()
+				return m, nil
+			}
+		case tea.KeyEnter:
+			if m.active == newRegistryInput {
+				registries := viper.GetStringSlice("registries")
+				registries = append(registries, m.newRegistryInput.Value())
+				viper.Set("registries", registries)
+				viper.WriteConfig()
+				m.active = selector
+				m.registryselector.Focus()
+				return m, config.LoadConfig
+			}
 		}
 		switch msg.String() {
 		case "s":
-			m.active = selector
-			m.registryselector.Focus()
-			m.blocklist.Blur()
-			m.selectedBlocks.Blur()
+			if m.active != newRegistryInput {
+				m.active = selector
+				m.registryselector.Focus()
+				m.blocklist.Blur()
+				m.selectedBlocks.Blur()
+			}
+		case "n":
+			if m.active != newRegistryInput {
+				m.active = newRegistryInput
+				m.newRegistryInput.Focus()
+				m.registryselector.Blur()
+				m.blocklist.Blur()
+				m.selectedBlocks.Blur()
+				return m, nil
+			}
 		}
 	case block_list.ListItem:
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
@@ -76,6 +109,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.active = listView
 		return m, nil
+	case manifest.ManifestNotFoundError:
+		m.newRegistryInput.SetValue(string(msg))
 	case selected_block_list.RemoveBlock:
 		m.dependencytable, _ = m.dependencytable.Update(msg)
 		return m, nil
@@ -91,20 +126,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case selectedBlocks:
 		m.selectedBlocks, cmd = m.selectedBlocks.Update(msg)
 		cmds = append(cmds, cmd)
+	case newRegistryInput:
+		m.newRegistryInput, cmd = m.newRegistryInput.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	var testHeader string
-	testHeader = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		Width(m.width - lipgloss.Width(m.dependencytable.View()) - 2).
-		Render("test header \ntest\ntest\ntest\ntest\ntest\ntest\ntest")
-	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - lipgloss.Height(testHeader))
-	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - lipgloss.Height(testHeader))
+	var newRegistryView string
+	newRegistryHight := 0
+	if m.active == newRegistryInput {
+		newRegistryView = lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("140")).
+			Width(m.width - lipgloss.Width(m.dependencytable.View()) - 2).
+			Render(m.newRegistryInput.View())
+		newRegistryHight = lipgloss.Height(newRegistryView)
+	}
+	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - newRegistryHight)
+	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - newRegistryHight)
 
 	sidebar := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -113,7 +155,7 @@ func (m model) View() string {
 	)
 
 	dashboard := lipgloss.JoinVertical(lipgloss.Left,
-		testHeader,
+		newRegistryView,
 		lipgloss.JoinHorizontal(lipgloss.Bottom,
 			m.blocklist.View(),
 			m.selectedBlocks.View(),
@@ -128,12 +170,15 @@ func (m model) View() string {
 }
 
 func main() {
+	input := textinput.New()
+	input.Placeholder = "New registry"
 	p := tea.NewProgram(model{
 		registryselector: registry_selector.New(),
 		blocklist:        block_list.New(),
 		selectedBlocks:   selected_block_list.New(),
 		dependencytable:  dependency_table.New(),
-	}, tea.WithAltScreen())
+		newRegistryInput: input,
+	})
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

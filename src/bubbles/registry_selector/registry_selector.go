@@ -3,13 +3,15 @@ package registry_selector
 import (
 	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/config"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/viper"
 )
 
-const SidebarWidth = 36
+const SidebarWidth = 32
 
 type Model struct {
 	config config.Config
@@ -54,14 +56,41 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			cmds = append(cmds, manifest.GetManifest(m.table.SelectedRow()[0]))
+			registryName := m.table.SelectedRow()[0]
+			var registryUrl string
+			for _, value := range m.config.Registries {
+				if strings.Split(value, "/")[2] == registryName {
+					registryUrl = value
+				}
+			}
+			cmds = append(cmds, manifest.GetManifest(registryUrl))
 			m.focus = false
+		case tea.KeyDelete:
+			registryName := m.table.SelectedRow()[0]
+			var registryUrl string
+			for _, value := range m.config.Registries {
+				if strings.Split(value, "/")[2] == registryName {
+					registryUrl = value
+					break
+				}
+			}
+			var filteredRegistries []string
+			for _, value := range m.config.Registries {
+				if value != registryUrl {
+					filteredRegistries = append(filteredRegistries, value)
+				}
+			}
+			viper.Set("registries", filteredRegistries)
+			viper.WriteConfig()
+			return m, config.LoadConfig
 		}
+
 	case config.Config:
 		m.config = msg
 		rows := []table.Row{}
-		for key := range m.config.Entries {
-			rows = append(rows, table.Row{key})
+		for _, value := range m.config.Registries {
+			value = strings.Split(value, "/")[2]
+			rows = append(rows, table.Row{value})
 		}
 		m.table.SetRows(rows)
 	}
