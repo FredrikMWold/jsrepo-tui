@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 )
 
 type Model struct {
@@ -83,7 +83,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.list.SetItems(items)
 		m.focus = true
 	case tea.WindowSizeMsg:
-		m.list.SetWidth((msg.Width-registry_selector.SidebarWidth)/2 - 4)
+		m.list.SetWidth((msg.Width-config.SidebarWidth)/2 - 4)
 		m.list.SetHeight(msg.Height - 2)
 		return m, nil
 	case Blocks:

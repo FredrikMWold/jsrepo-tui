@@ -12,9 +12,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
-	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
 	downloadblocks "github.com/fredrikmwold/jsrepo-tui/src/commands/download_blocks"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 )
 
 const (
@@ -34,8 +34,8 @@ type Model struct {
 
 func New() Model {
 	columns := []table.Column{
-		{Title: "Category", Width: registry_selector.SidebarWidth/6*2 - 4},
-		{Title: "Path", Width: registry_selector.SidebarWidth/6*4 + 4},
+		{Title: "Category", Width: config.SidebarWidth/6*2 - 4},
+		{Title: "Path", Width: config.SidebarWidth/6*4 + 4},
 	}
 	t := table.New(table.WithColumns(columns), table.WithFocused(false))
 	s := table.DefaultStyles()
@@ -89,7 +89,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.table.SetHeight(int(math.Floor(float64(msg.Height) / 3)))
 		m.filePicker.SetHeight(int(math.Floor(float64(msg.Height)/3)) - 1)
-		m.table.SetWidth(registry_selector.SidebarWidth + 2)
+		m.table.SetWidth(config.SidebarWidth + 2)
 	case manifest.ManifestResponse:
 		m.repo = msg
 	case block_list.Blocks:

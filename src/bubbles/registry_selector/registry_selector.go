@@ -6,12 +6,11 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 	"github.com/fredrikmwold/jsrepo-tui/src/config"
 	"github.com/spf13/viper"
 )
-
-const SidebarWidth = 38
 
 type Model struct {
 	config config.Config
@@ -21,7 +20,7 @@ type Model struct {
 
 func New() Model {
 	columns := []table.Column{
-		{Title: "Registries", Width: SidebarWidth},
+		{Title: "Registries", Width: config.SidebarWidth},
 	}
 	t := table.New(table.WithColumns(columns), table.WithFocused(true))
 	s := table.DefaultStyles()
@@ -58,6 +57,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case tea.KeyEnter:
 			registryName := m.table.SelectedRow()[0]
 			cmds = append(cmds, manifest.GetManifest(registryName))
+			cmds = append(cmds, func() tea.Msg {
+				return block_list.Blocks{}
+			})
 			m.focus = false
 		case tea.KeyDelete:
 			registryName := m.table.SelectedRow()[0]

@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
-	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 )
 
 type Model struct {
@@ -84,7 +84,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.Width%2 != 0 {
 			margin = 3
 		}
-		m.listView.SetWidth((msg.Width-registry_selector.SidebarWidth)/2 - margin)
+		m.listView.SetWidth((msg.Width-config.SidebarWidth)/2 - margin)
 		m.listView.SetHeight(msg.Height - 2)
 		return m, nil
 

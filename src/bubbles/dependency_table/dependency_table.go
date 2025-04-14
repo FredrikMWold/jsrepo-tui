@@ -8,8 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
-	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 	"github.com/fredrikmwold/jsrepo-tui/src/helpers"
 )
 
@@ -20,7 +20,7 @@ type Model struct {
 
 func New() Model {
 	columns := []table.Column{
-		{Title: "Dependencies", Width: registry_selector.SidebarWidth},
+		{Title: "Dependencies", Width: config.SidebarWidth},
 	}
 	t := table.New(table.WithColumns(columns), table.WithFocused(false))
 	s := table.Styles{

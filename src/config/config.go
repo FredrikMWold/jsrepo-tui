@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const SidebarWidth = 38
+
 type Config struct {
 	Registries []string `mapstructure:"registries"`
 }
