@@ -1,9 +1,9 @@
 package dependency_table
 
 import (
-	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/block_list"
 	"jsrepo-tui/src/bubbles/registry_selector"
+	"jsrepo-tui/src/commands/manifest"
 	"jsrepo-tui/src/helpers"
 	"math"
 	"sort"

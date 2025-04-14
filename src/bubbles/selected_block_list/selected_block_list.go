@@ -1,10 +1,11 @@
 package selected_block_list
 
 import (
-	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/block_list"
 	"jsrepo-tui/src/bubbles/registry_selector"
+	"jsrepo-tui/src/commands/manifest"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +23,11 @@ func New() Model {
 	list.Styles.Title = lipgloss.NewStyle().Foreground(lipgloss.Color("#11111b")).
 		Background(lipgloss.Color("#cba6f7")).Padding(0, 1).Bold(true)
 	list.Title = "Selected Blocks"
+	list.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(key.WithKeys("backspace"), key.WithHelp("backspace", "remove block")),
+		}
+	}
 
 	return Model{
 		listView: list,

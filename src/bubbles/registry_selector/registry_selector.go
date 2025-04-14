@@ -1,7 +1,7 @@
 package registry_selector
 
 import (
-	"jsrepo-tui/src/api/manifest"
+	"jsrepo-tui/src/commands/manifest"
 	"jsrepo-tui/src/config"
 	"math"
 

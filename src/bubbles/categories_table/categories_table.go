@@ -1,13 +1,12 @@
 package categories_table
 
 import (
-	"fmt"
-	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/block_list"
 	"jsrepo-tui/src/bubbles/registry_selector"
+	downloadblocks "jsrepo-tui/src/commands/download_blocks"
+	"jsrepo-tui/src/commands/manifest"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -84,8 +83,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		}
 		switch msg.String() {
-		case "d":
-			return m, downloadBlocks(m.blocks, m.categoryPaths, m.repo.RegistryName)
+		case "ctrl+d":
+			return m, downloadblocks.DownloadBlocks(m.blocks, m.categoryPaths, m.repo.RegistryName)
 		}
 	case tea.WindowSizeMsg:
 		m.table.SetHeight(int(math.Floor(float64(msg.Height) / 3)))
@@ -94,37 +93,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case manifest.ManifestResponse:
 		m.repo = msg
 	case block_list.Blocks:
-		m.blocks = msg
-		for _, block := range m.blocks {
-			if _, ok := m.categoryPaths[block.Category]; !ok {
-				m.categoryPaths[block.Category] = "./" + block.Category
-			}
-			for _, item := range m.getLocalDependencies(block) {
-				if _, ok := m.categoryPaths[item.Category]; !ok {
-					m.categoryPaths[item.Category] = "./" + item.Category
-				}
-			}
-		}
-		for category, _ := range m.categoryPaths {
-			if !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
-				return block.Category == category
-			}) && !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
-				for _, item := range m.getLocalDependencies(block) {
-					if item.Category == category {
-						return true
-					}
-				}
-				return false
-			}) {
-				delete(m.categoryPaths, category)
-			}
-		}
-
-		var rows []table.Row
-		for category, path := range m.categoryPaths {
-			rows = append(rows, table.Row{category, path})
-		}
-		m.table.SetRows(rows)
+		m.handleBlocks(msg)
 	}
 	switch m.active {
 	case filePickerView:
@@ -154,8 +123,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	m.table, cmd = m.table.Update(msg)
-	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
 }
 
@@ -207,30 +174,36 @@ func (m Model) getLocalDependencies(selectedBlock manifest.Block) []manifest.Blo
 	return localDependencies
 }
 
-func downloadBlocks(blocks []manifest.Block, categoryPath map[string]string, registryName string) tea.Cmd {
-	return func() tea.Msg {
-		var commandString string
-		commandString += "npx jsrepo add --tests false --formatter prettier --allow --yes --paths "
-		idx := 0
-		for categroy, path := range categoryPath {
-			//do not add comma on last item
-			if len(categoryPath)-1 == idx {
-				commandString += fmt.Sprintf("%s=%s ", categroy, path)
-			} else {
-				commandString += fmt.Sprintf("%s=%s,", categroy, path)
+func (m *Model) handleBlocks(blocks block_list.Blocks) {
+	m.blocks = blocks
+	for _, block := range m.blocks {
+		if _, ok := m.categoryPaths[block.Category]; !ok {
+			m.categoryPaths[block.Category] = "./" + block.Category
+		}
+		for _, item := range m.getLocalDependencies(block) {
+			if _, ok := m.categoryPaths[item.Category]; !ok {
+				m.categoryPaths[item.Category] = "./" + item.Category
 			}
-			idx++
 		}
-		for _, block := range blocks {
-			commandString += fmt.Sprintf("%s/%s/%s ", registryName, block.Category, block.Name)
+	}
+	for category, _ := range m.categoryPaths {
+		if !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
+			return block.Category == category
+		}) && !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
+			for _, item := range m.getLocalDependencies(block) {
+				if item.Category == category {
+					return true
+				}
+			}
+			return false
+		}) {
+			delete(m.categoryPaths, category)
 		}
-		cmd := exec.Command("sh", "-c", commandString)
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			return manifest.BannerErrorMessage(err.Error())
-		}
-		return manifest.BannerErrorMessage(string(output))
-
 	}
 
+	var rows []table.Row
+	for category, path := range m.categoryPaths {
+		rows = append(rows, table.Row{category, path})
+	}
+	m.table.SetRows(rows)
 }
