@@ -4,15 +4,19 @@ import (
 	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/block_list"
 	"jsrepo-tui/src/bubbles/registry_selector"
-	"jsrepo-tui/src/bubbles/selected_block_list"
 	"jsrepo-tui/src/helpers"
-	"slices"
+	"math"
 	"sort"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+type Model struct {
+	table  table.Model
+	blocks []manifest.Block
+}
 
 func New() Model {
 	columns := []table.Column{
@@ -34,11 +38,6 @@ func New() Model {
 	}
 }
 
-type Model struct {
-	table table.Model
-	data  []manifest.Block
-}
-
 func (m Model) Init() tea.Cmd {
 	return nil
 }
@@ -48,17 +47,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.table.SetHeight(msg.Height/2 - 2)
-	case block_list.ListItem:
-		isDuplicate := slices.ContainsFunc(m.data, func(item manifest.Block) bool {
-			return item.Name == msg.Block.Name
-		})
-		if !isDuplicate {
-			m.data = append(m.data, msg.Block)
-		}
+		m.table.SetHeight(int(math.Floor(float64(msg.Height) / 3)))
+	case block_list.Blocks:
+		m.blocks = msg
 		var rows []table.Row
 		var dependencies []string
-		for _, block := range m.data {
+		for _, block := range m.blocks {
 			dependencies = append(dependencies, block.Dependencies...)
 			dependencies = append(dependencies, block.DevDependencies...)
 		}
@@ -69,26 +63,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 
 		m.table.SetRows(rows)
-	case selected_block_list.RemoveBlock:
-		var blocks []manifest.Block
-		for _, block := range m.data {
-			if block.Name != msg.Name {
-				blocks = append(blocks, block)
-			}
-		}
-		m.data = blocks
-		var rows []table.Row
-		var dependencies []string
-		for _, block := range m.data {
-			dependencies = append(dependencies, block.Dependencies...)
-		}
-		dependencies = helpers.UniqueStrings(dependencies)
-		sort.Strings(dependencies)
-		for _, dependency := range dependencies {
-			rows = append(rows, table.Row{dependency})
-		}
-		m.table.SetRows(rows)
-
 	}
 	return m, cmd
 }

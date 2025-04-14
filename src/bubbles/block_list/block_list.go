@@ -3,8 +3,7 @@ package block_list
 import (
 	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/registry_selector"
-	"os"
-	"strings"
+	"slices"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,9 +11,10 @@ import (
 )
 
 type Model struct {
-	repo  manifest.ManifestResponse
-	focus bool
-	list  list.Model
+	repo           manifest.ManifestResponse
+	focus          bool
+	list           list.Model
+	selectedBlocks []manifest.Block
 }
 
 type ListItem struct {
@@ -22,6 +22,8 @@ type ListItem struct {
 	Category string
 	Block    manifest.Block
 }
+
+type Blocks []manifest.Block
 
 func (i ListItem) Title() string       { return i.Name }
 func (i ListItem) Description() string { return i.Category }
@@ -51,13 +53,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			for _, item := range m.getLocalDependencies() {
-				cmds = append(cmds, addBlock(item))
+			selectedItem := m.list.SelectedItem().(ListItem)
+			isDuplicate := slices.ContainsFunc(m.selectedBlocks, func(block manifest.Block) bool {
+				return block.Name == selectedItem.Title()
+			})
+			if !isDuplicate {
+				m.selectedBlocks = append(m.selectedBlocks, selectedItem.Block)
 			}
-			if m.list.SelectedItem() != nil {
-				cmds = append(cmds, addBlock(m.list.SelectedItem().(ListItem)))
-			}
-			return m, tea.Batch(cmds...)
+			return m, UpdateBlocks(m.selectedBlocks)
 		}
 	case manifest.ManifestResponse:
 		m.repo = msg
@@ -77,7 +80,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.list.SetWidth((msg.Width-registry_selector.SidebarWidth)/2 - 4)
 		m.list.SetHeight(msg.Height - 2)
 		return m, nil
-
+	case Blocks:
+		m.selectedBlocks = msg
 	}
 	m.list, cmd = m.list.Update(msg)
 	cmds = append(cmds, cmd)
@@ -102,13 +106,9 @@ func (m Model) View() string {
 	return s
 }
 
-func addBlock(block ListItem) tea.Cmd {
+func UpdateBlocks(blocks []manifest.Block) tea.Cmd {
 	return func() tea.Msg {
-		return ListItem{
-			Name:     block.Name,
-			Category: "." + string(os.PathSeparator) + block.Category,
-			Block:    block.Block,
-		}
+		return Blocks(blocks)
 	}
 }
 
@@ -122,26 +122,4 @@ func (m *Model) Blur() {
 
 func (m *Model) SetHeight(height int) {
 	m.list.SetHeight(height - 2)
-}
-
-func (m Model) getLocalDependencies() []ListItem {
-	var localDependencies []ListItem
-	if m.list.SelectedItem() == nil {
-		return localDependencies
-	}
-	for _, localDependency := range m.list.SelectedItem().(ListItem).Block.LocalDependencies {
-		blockName := strings.Split(localDependency, "/")[len(strings.Split(localDependency, "/"))-1]
-		for _, category := range m.repo.Categories {
-			for _, block := range category.Blocks {
-				if block.Name == blockName {
-					localDependencies = append(localDependencies, ListItem{
-						Name:     block.Name,
-						Category: block.Category,
-						Block:    block,
-					})
-				}
-			}
-		}
-	}
-	return localDependencies
 }

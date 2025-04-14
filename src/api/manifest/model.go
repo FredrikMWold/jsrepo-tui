@@ -20,5 +20,6 @@ type Category struct {
 }
 
 type ManifestResponse struct {
-	Categories []Category `json:"categories"`
+	Categories   []Category `json:"categories"`
+	RegistryName string
 }

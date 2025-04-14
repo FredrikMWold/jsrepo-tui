@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type ManifestNotFoundError string
+type BannerErrorMessage string
 
 func GetManifest(provider string) tea.Cmd {
 	return func() tea.Msg {
@@ -31,7 +31,7 @@ func GetManifest(provider string) tea.Cmd {
 		}
 
 		if resp.StatusCode == 404 {
-			return ManifestNotFoundError("Manifest not found")
+			return BannerErrorMessage("Manifest not found")
 		}
 
 		var response ManifestResponse
@@ -39,6 +39,7 @@ func GetManifest(provider string) tea.Cmd {
 		if err != nil {
 			return err
 		}
+		response.RegistryName = provider
 		return response
 	}
 }

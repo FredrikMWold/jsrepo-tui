@@ -3,7 +3,7 @@ package registry_selector
 import (
 	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/config"
-	"strings"
+	"math"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const SidebarWidth = 32
+const SidebarWidth = 38
 
 type Model struct {
 	config config.Config
@@ -48,35 +48,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		margin := 4
-		if msg.Height%2 != 0 {
-			margin = 3
+		margin := 5
+		if msg.Height%3 != 0 {
+			margin = 4
 		}
-		m.table.SetHeight((msg.Height - margin) / 2)
+		m.table.SetHeight(int(math.Ceil(float64(msg.Height-margin)/3)) - margin)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
 			registryName := m.table.SelectedRow()[0]
-			var registryUrl string
-			for _, value := range m.config.Registries {
-				if strings.Split(value, "/")[2] == registryName {
-					registryUrl = value
-				}
-			}
-			cmds = append(cmds, manifest.GetManifest(registryUrl))
+			cmds = append(cmds, manifest.GetManifest(registryName))
 			m.focus = false
 		case tea.KeyDelete:
 			registryName := m.table.SelectedRow()[0]
-			var registryUrl string
-			for _, value := range m.config.Registries {
-				if strings.Split(value, "/")[2] == registryName {
-					registryUrl = value
-					break
-				}
-			}
 			var filteredRegistries []string
 			for _, value := range m.config.Registries {
-				if value != registryUrl {
+				if value != registryName {
 					filteredRegistries = append(filteredRegistries, value)
 				}
 			}
@@ -89,7 +76,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.config = msg
 		rows := []table.Row{}
 		for _, value := range m.config.Registries {
-			value = strings.Split(value, "/")[2]
 			rows = append(rows, table.Row{value})
 		}
 		m.table.SetRows(rows)

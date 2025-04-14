@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"jsrepo-tui/src/api/manifest"
 	"jsrepo-tui/src/bubbles/block_list"
+	"jsrepo-tui/src/bubbles/categories_table"
 	"jsrepo-tui/src/bubbles/dependency_table"
 	"jsrepo-tui/src/bubbles/registry_selector"
 	"jsrepo-tui/src/bubbles/selected_block_list"
@@ -20,6 +21,7 @@ const (
 	selector = iota
 	listView
 	selectedBlocks
+	categoriesTable
 	newRegistryInput
 )
 
@@ -29,8 +31,10 @@ type model struct {
 	selectedBlocks   selected_block_list.Model
 	dependencytable  dependency_table.Model
 	newRegistryInput textinput.Model
+	categoriestable  categories_table.Model
 	width            int
 	active           int
+	error            manifest.BannerErrorMessage
 }
 
 func (m model) Init() tea.Cmd {
@@ -57,6 +61,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedBlocks.Blur()
 			}
 		case tea.KeyEsc:
+			if m.error != manifest.BannerErrorMessage("") {
+				m.error = manifest.BannerErrorMessage("")
+				return m, nil
+			}
 			if m.active == newRegistryInput {
 				m.active = selector
 				m.registryselector.Focus()
@@ -76,11 +84,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		switch msg.String() {
+		case "d":
+			m.categoriestable, cmd = m.categoriestable.Update(msg)
+			return m, cmd
 		case "s":
 			if m.active != newRegistryInput {
 				m.active = selector
 				m.registryselector.Focus()
 				m.blocklist.Blur()
+				m.categoriestable.Blur()
 				m.selectedBlocks.Blur()
 			}
 		case "n":
@@ -89,13 +101,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.newRegistryInput.Focus()
 				m.registryselector.Blur()
 				m.blocklist.Blur()
+				m.categoriestable.Blur()
+				m.selectedBlocks.Blur()
+				return m, nil
+			}
+		case "p":
+			if m.active != newRegistryInput {
+				m.active = categoriesTable
+				m.categoriestable.Focus()
+				m.registryselector.Blur()
+				m.blocklist.Blur()
 				m.selectedBlocks.Blur()
 				return m, nil
 			}
 		}
-	case block_list.ListItem:
+	case block_list.Blocks:
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
+		m.categoriestable, _ = m.categoriestable.Update(msg)
 		m.dependencytable, _ = m.dependencytable.Update(msg)
+		m.blocklist, _ = m.blocklist.Update(msg)
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -103,17 +127,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.dependencytable, _ = m.dependencytable.Update(msg)
+		m.categoriestable, _ = m.categoriestable.Update(msg)
 		return m, nil
 	case manifest.ManifestResponse:
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
+		m.categoriestable, _ = m.categoriestable.Update(msg)
 		m.active = listView
 		return m, nil
-	case manifest.ManifestNotFoundError:
-		m.newRegistryInput.SetValue(string(msg))
-	case selected_block_list.RemoveBlock:
-		m.dependencytable, _ = m.dependencytable.Update(msg)
-		return m, nil
+	case manifest.BannerErrorMessage:
+		m.error = msg
+
 	}
 
 	switch m.active {
@@ -129,6 +153,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case newRegistryInput:
 		m.newRegistryInput, cmd = m.newRegistryInput.Update(msg)
 		cmds = append(cmds, cmd)
+	case categoriesTable:
+		m.categoriestable, cmd = m.categoriestable.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -138,6 +165,7 @@ func (m model) View() string {
 	var newRegistryView string
 	newRegistryHight := 0
 	if m.active == newRegistryInput {
+		m.newRegistryInput.Width = m.width - lipgloss.Width(m.dependencytable.View()) - 2
 		newRegistryView = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("140")).
@@ -145,12 +173,24 @@ func (m model) View() string {
 			Render(m.newRegistryInput.View())
 		newRegistryHight = lipgloss.Height(newRegistryView)
 	}
+	if m.error != manifest.BannerErrorMessage("") {
+		m.newRegistryInput.Width = m.width - lipgloss.Width(m.dependencytable.View()) - 2
+		newRegistryView = lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("9")).
+			Width(m.width-lipgloss.Width(m.dependencytable.View())-2).
+			Padding(0, 1).
+			Render(string(m.error))
+		newRegistryHight = lipgloss.Height(newRegistryView)
+	}
+
 	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - newRegistryHight)
 	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - newRegistryHight)
 
 	sidebar := lipgloss.JoinVertical(
 		lipgloss.Left,
 		m.registryselector.View(),
+		m.categoriestable.View(),
 		m.dependencytable.View(),
 	)
 
@@ -171,12 +211,13 @@ func (m model) View() string {
 
 func main() {
 	input := textinput.New()
-	input.Placeholder = "New registry"
+	input.Placeholder = "github/<username>/<repo>"
 	p := tea.NewProgram(model{
 		registryselector: registry_selector.New(),
 		blocklist:        block_list.New(),
 		selectedBlocks:   selected_block_list.New(),
 		dependencytable:  dependency_table.New(),
+		categoriestable:  categories_table.New(),
 		newRegistryInput: input,
 	})
 	if _, err := p.Run(); err != nil {
