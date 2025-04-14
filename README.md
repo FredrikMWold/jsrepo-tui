@@ -1,6 +1,8 @@
 # jsrepo-tui
 
 A terminal user interface for managing JavaScript/TypeScript blocks with jsrepo.
+![Peek 2025-04-14 17-05](https://github.com/user-attachments/assets/042979e0-8340-4dd1-91f7-ca5e6b1f9b5f)
+
 
 ## Prerequisites
 
