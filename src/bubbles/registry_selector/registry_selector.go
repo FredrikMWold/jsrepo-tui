@@ -1,13 +1,13 @@
 package registry_selector
 
 import (
-	"jsrepo-tui/src/commands/manifest"
-	"jsrepo-tui/src/config"
 	"math"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 	"github.com/spf13/viper"
 )
 

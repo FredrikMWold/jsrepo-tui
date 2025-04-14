@@ -1,14 +1,14 @@
 package block_list
 
 import (
-	"jsrepo-tui/src/bubbles/registry_selector"
-	"jsrepo-tui/src/commands/manifest"
 	"slices"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 )
 
 type Model struct {

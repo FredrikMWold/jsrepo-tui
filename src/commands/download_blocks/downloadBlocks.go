@@ -2,10 +2,10 @@ package downloadblocks
 
 import (
 	"fmt"
-	"jsrepo-tui/src/commands/manifest"
 	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 )
 
 func DownloadBlocks(blocks []manifest.Block, categoryPath map[string]string, registryName string) tea.Cmd {

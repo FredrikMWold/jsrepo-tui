@@ -1,16 +1,16 @@
 package dependency_table
 
 import (
-	"jsrepo-tui/src/bubbles/block_list"
-	"jsrepo-tui/src/bubbles/registry_selector"
-	"jsrepo-tui/src/commands/manifest"
-	"jsrepo-tui/src/helpers"
 	"math"
 	"sort"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/helpers"
 )
 
 type Model struct {
