@@ -1,10 +1,6 @@
 package categories_table
 
 import (
-	"jsrepo-tui/src/bubbles/block_list"
-	"jsrepo-tui/src/bubbles/registry_selector"
-	downloadblocks "jsrepo-tui/src/commands/download_blocks"
-	"jsrepo-tui/src/commands/manifest"
 	"math"
 	"os"
 	"path/filepath"
@@ -15,6 +11,10 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
+	downloadblocks "github.com/fredrikmwold/jsrepo-tui/src/commands/download_blocks"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 )
 
 const (

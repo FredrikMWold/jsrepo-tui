@@ -1,16 +1,15 @@
 package app
 
 import (
-	"jsrepo-tui/src/bubbles/block_list"
-	"jsrepo-tui/src/bubbles/categories_table"
-	"jsrepo-tui/src/bubbles/dependency_table"
-	keybindinghelp "jsrepo-tui/src/bubbles/key_binding_help"
-	"jsrepo-tui/src/bubbles/registry_selector"
-	"jsrepo-tui/src/bubbles/selected_block_list"
-	"jsrepo-tui/src/commands/manifest"
-	"jsrepo-tui/src/config"
-
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/categories_table"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/dependency_table"
+	keybindinghelp "github.com/fredrikmwold/jsrepo-tui/src/bubbles/key_binding_help"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
+	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/selected_block_list"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
+	"github.com/fredrikmwold/jsrepo-tui/src/config"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"

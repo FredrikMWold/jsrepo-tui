@@ -1,4 +1,4 @@
-module jsrepo-tui
+module github.com/fredrikmwold/jsrepo-tui
 
 go 1.23.0
 
