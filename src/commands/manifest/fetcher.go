@@ -14,7 +14,7 @@ type BannerErrorMessage string
 
 func GetManifest(provider string) tea.Cmd {
 	return func() tea.Msg {
-		url := strings.Replace(provider, "github", "https://raw.githubusercontent.com/", 1)
+		url := strings.Replace(provider, "github", "https://raw.githubusercontent.com", 1)
 		url = fmt.Sprintf("%s%s", url, "/refs/heads/master/jsrepo-manifest.json")
 
 		resp, err := http.Get(url)

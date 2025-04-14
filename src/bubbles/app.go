@@ -97,6 +97,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedBlocks.Blur()
 				return m, nil
 			}
+		case key.Matches(msg, m.keys.AddNewRegistry):
+			if m.active != newRegistryInput {
+				m.active = newRegistryInput
+				m.newRegistryInput.Focus()
+				m.registryselector.Blur()
+				m.blocklist.Blur()
+				m.categoriestable.Blur()
+				m.selectedBlocks.Blur()
+				return m, nil
+			}
 		case key.Matches(msg, m.keys.Quit):
 			return m, tea.Quit
 		}
@@ -124,18 +134,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, config.LoadConfig
 			}
 
-		}
-		switch msg.String() {
-		case "n":
-			if m.active != newRegistryInput {
-				m.active = newRegistryInput
-				m.newRegistryInput.Focus()
-				m.registryselector.Blur()
-				m.blocklist.Blur()
-				m.categoriestable.Blur()
-				m.selectedBlocks.Blur()
-				return m, nil
-			}
 		}
 	case block_list.Blocks:
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
