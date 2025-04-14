@@ -84,7 +84,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		switch msg.String() {
 		case "ctrl+d":
-			return m, downloadblocks.DownloadBlocks(m.blocks, m.categoryPaths, m.repo.RegistryName)
+			repoName := strings.Split(m.repo.RegistryName, "@")[0]
+			return m, downloadblocks.DownloadBlocks(m.blocks, m.categoryPaths, repoName)
 		}
 	case tea.WindowSizeMsg:
 		m.table.SetHeight(int(math.Floor(float64(msg.Height) / 3)))
