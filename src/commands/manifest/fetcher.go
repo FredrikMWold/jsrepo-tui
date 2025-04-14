@@ -14,9 +14,14 @@ type BannerErrorMessage string
 
 func GetManifest(provider string) tea.Cmd {
 	return func() tea.Msg {
-		url := strings.Replace(provider, "github", "https://raw.githubusercontent.com", 1)
-		url = fmt.Sprintf("%s%s", url, "/refs/heads/master/jsrepo-manifest.json")
-
+		parts := strings.Split(provider, "@")
+		providerURL := parts[0]
+		branch := "master" // default branch
+		if len(parts) > 1 {
+			branch = parts[1]
+		}
+		url := strings.Replace(providerURL, "github", "https://raw.githubusercontent.com", 1)
+		url = fmt.Sprintf("%s%s", url, "/refs/heads/"+branch+"/jsrepo-manifest.json")
 		resp, err := http.Get(url)
 		if err != nil {
 			fmt.Printf("Error getting manifest: %v\n", err)

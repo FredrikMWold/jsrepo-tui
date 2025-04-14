@@ -42,7 +42,7 @@ type Model struct {
 
 func New() Model {
 	input := textinput.New()
-	input.Placeholder = "github/<username>/<repo>"
+	input.Placeholder = "github/<username>/<repo>@<branch>"
 	return Model{
 		registryselector: registry_selector.New(),
 		blocklist:        block_list.New(),
