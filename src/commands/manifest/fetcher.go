@@ -24,15 +24,14 @@ func GetManifest(provider string) tea.Cmd {
 		url = fmt.Sprintf("%s%s", url, "/refs/heads/"+branch+"/jsrepo-manifest.json")
 		resp, err := http.Get(url)
 		if err != nil {
-			fmt.Printf("Error getting manifest: %v\n", err)
-			return err
+			return BannerErrorMessage(err.Error())
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Print(err)
-			return err
+			return BannerErrorMessage(err.Error())
 		}
 
 		if resp.StatusCode == 404 {

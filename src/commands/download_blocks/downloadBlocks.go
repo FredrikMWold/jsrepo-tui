@@ -26,11 +26,11 @@ func DownloadBlocks(blocks []manifest.Block, categoryPath map[string]string, reg
 			commandString += fmt.Sprintf("%s/%s/%s ", registryName, block.Category, block.Name)
 		}
 		cmd := exec.Command("sh", "-c", commandString)
-		output, err := cmd.CombinedOutput()
+		_, err := cmd.CombinedOutput()
 		if err != nil {
 			return manifest.BannerErrorMessage(err.Error())
 		}
-		return manifest.BannerErrorMessage(string(output))
+		return manifest.BannerErrorMessage("Downloaded blocks successfully")
 
 	}
 
