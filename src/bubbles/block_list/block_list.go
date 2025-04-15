@@ -59,6 +59,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
+			if m.list.SelectedItem() == nil {
+				return m, nil
+			}
 			selectedItem := m.list.SelectedItem().(ListItem)
 			isDuplicate := slices.ContainsFunc(m.selectedBlocks, func(block manifest.Block) bool {
 				return block.Name == selectedItem.Title()
@@ -81,7 +84,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 		m.list.SetItems(items)
-		m.focus = true
 	case tea.WindowSizeMsg:
 		m.list.SetWidth((msg.Width-config.SidebarWidth)/2 - 4)
 		m.list.SetHeight(msg.Height - 2)

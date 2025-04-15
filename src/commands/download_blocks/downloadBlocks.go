@@ -8,17 +8,25 @@ import (
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 )
 
-func DownloadBlocks(blocks []manifest.Block, categoryPath map[string]string, registryName string) tea.Cmd {
+type SuccessMessage string
+type DownloadBlocksErrorMessage string
+
+type CategoryPath struct {
+	Category string
+	Path     string
+}
+
+func DownloadBlocks(blocks []manifest.Block, categoryPaths []CategoryPath, registryName string) tea.Cmd {
 	return func() tea.Msg {
 		var commandString string
 		commandString += "npx --no-install jsrepo add --tests false --formatter prettier --allow --yes --paths "
 		idx := 0
-		for categroy, path := range categoryPath {
+		for _, category := range categoryPaths {
 			//do not add comma on last item
-			if len(categoryPath)-1 == idx {
-				commandString += fmt.Sprintf("%s=%s ", categroy, path)
+			if len(categoryPaths)-1 == idx {
+				commandString += fmt.Sprintf("%s=%s ", category.Category, category.Path)
 			} else {
-				commandString += fmt.Sprintf("%s=%s,", categroy, path)
+				commandString += fmt.Sprintf("%s=%s,", category.Category, category.Path)
 			}
 			idx++
 		}
@@ -28,9 +36,9 @@ func DownloadBlocks(blocks []manifest.Block, categoryPath map[string]string, reg
 		cmd := exec.Command("sh", "-c", commandString)
 		_, err := cmd.CombinedOutput()
 		if err != nil {
-			return manifest.BannerErrorMessage(err.Error())
+			return DownloadBlocksErrorMessage(err.Error())
 		}
-		return manifest.BannerErrorMessage("Downloaded blocks successfully")
+		return SuccessMessage("Downloaded blocks successfully")
 
 	}
 

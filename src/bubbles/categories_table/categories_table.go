@@ -27,7 +27,7 @@ type Model struct {
 	table         table.Model
 	active        int
 	focus         bool
-	categoryPaths map[string]string
+	categoryPaths []downloadblocks.CategoryPath
 	blocks        []manifest.Block
 	repo          manifest.ManifestResponse
 }
@@ -60,7 +60,7 @@ func New() Model {
 		table:         t,
 		filePicker:    f,
 		focus:         false,
-		categoryPaths: map[string]string{},
+		categoryPaths: []downloadblocks.CategoryPath{},
 	}
 }
 
@@ -109,10 +109,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				if err != nil {
 					return m, nil
 				}
-				m.categoryPaths[m.table.SelectedRow()[0]] = "./" + relativePath
+				for i, category := range m.categoryPaths {
+					if category.Category == m.table.SelectedRow()[0] {
+						m.categoryPaths[i].Path = "./" + relativePath
+						break
+					}
+				}
 				var rows []table.Row
-				for category, path := range m.categoryPaths {
-					rows = append(rows, table.Row{category, path})
+				for _, category := range m.categoryPaths {
+					rows = append(rows, table.Row{category.Category, category.Path})
 				}
 				m.table.SetRows(rows)
 				m.active = tableView
@@ -177,34 +182,34 @@ func (m Model) getLocalDependencies(selectedBlock manifest.Block) []manifest.Blo
 
 func (m *Model) handleBlocks(blocks block_list.Blocks) {
 	m.blocks = blocks
+	var categoryPaths []downloadblocks.CategoryPath
+
 	for _, block := range m.blocks {
-		if _, ok := m.categoryPaths[block.Category]; !ok {
-			m.categoryPaths[block.Category] = "./" + block.Category
-		}
-		for _, item := range m.getLocalDependencies(block) {
-			if _, ok := m.categoryPaths[item.Category]; !ok {
-				m.categoryPaths[item.Category] = "./" + item.Category
-			}
-		}
-	}
-	for category, _ := range m.categoryPaths {
-		if !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
-			return block.Category == category
-		}) && !slices.ContainsFunc(m.blocks, func(block manifest.Block) bool {
-			for _, item := range m.getLocalDependencies(block) {
-				if item.Category == category {
-					return true
-				}
-			}
-			return false
+		if !slices.ContainsFunc(categoryPaths, func(cp downloadblocks.CategoryPath) bool {
+			return cp.Category == block.Category
 		}) {
-			delete(m.categoryPaths, category)
+			categoryPaths = append(categoryPaths, downloadblocks.CategoryPath{
+				Category: block.Category,
+				Path:     "./" + block.Category,
+			})
+		}
+
+		for _, item := range m.getLocalDependencies(block) {
+			if !slices.ContainsFunc(categoryPaths, func(cp downloadblocks.CategoryPath) bool {
+				return cp.Category == item.Category
+			}) {
+				categoryPaths = append(categoryPaths, downloadblocks.CategoryPath{
+					Category: item.Category,
+					Path:     "./" + item.Category,
+				})
+			}
 		}
 	}
 
 	var rows []table.Row
-	for category, path := range m.categoryPaths {
-		rows = append(rows, table.Row{category, path})
+	for _, cp := range categoryPaths {
+		rows = append(rows, table.Row{cp.Category, cp.Path})
 	}
 	m.table.SetRows(rows)
+	m.categoryPaths = categoryPaths
 }

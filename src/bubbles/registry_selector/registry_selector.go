@@ -60,7 +60,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			cmds = append(cmds, func() tea.Msg {
 				return block_list.Blocks{}
 			})
-			m.focus = false
 		case tea.KeyDelete:
 			registryName := m.table.SelectedRow()[0]
 			var filteredRegistries []string
