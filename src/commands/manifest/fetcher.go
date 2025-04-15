@@ -24,7 +24,7 @@ func GetManifest(provider string) tea.Cmd {
 		url = fmt.Sprintf("%s%s", url, "/refs/heads/"+branch+"/jsrepo-manifest.json")
 		resp, err := http.Get(url)
 		if err != nil {
-			return ManifestErrorMessage(err.Error())
+			return ManifestErrorMessage("Error getting manifest from: " + provider)
 		}
 		defer resp.Body.Close()
 
@@ -35,7 +35,7 @@ func GetManifest(provider string) tea.Cmd {
 		}
 
 		if resp.StatusCode == 404 {
-			return ManifestErrorMessage("Manifest not found")
+			return ManifestErrorMessage("Error getting manifest from: " + provider)
 		}
 
 		var response ManifestResponse

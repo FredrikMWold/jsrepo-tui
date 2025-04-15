@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 	"github.com/fredrikmwold/jsrepo-tui/src/config"
 	"github.com/spf13/viper"
 )
@@ -39,7 +40,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			registries := viper.GetStringSlice("registries")
-			registries = append(registries, m.newRegistryInput.Value())
+			newRegistry := m.newRegistryInput.Value()
+			result := manifest.GetManifest(newRegistry)()
+			if _, ok := result.(manifest.ManifestErrorMessage); ok {
+				return m, func() tea.Msg {
+					return result
+				}
+			}
+			registries = append(registries, newRegistry)
 			viper.Set("registries", registries)
 			viper.WriteConfig()
 			return m, config.LoadConfig
