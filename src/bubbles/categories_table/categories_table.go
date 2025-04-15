@@ -120,6 +120,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					rows = append(rows, table.Row{category.Category, category.Path})
 				}
 				m.table.SetRows(rows)
+				m.filePicker.CurrentDirectory, _ = os.Getwd()
 				m.active = tableView
 			}
 		}
