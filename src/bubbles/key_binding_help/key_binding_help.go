@@ -12,7 +12,7 @@ type KeyMap struct {
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.AddNewRegistry, k.DownloadBlocks, k.S, k.P, k.Quit}
+	return []key.Binding{k.Tab, k.AddNewRegistry, k.DownloadBlocks, k.S, k.P}
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
@@ -24,26 +24,26 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 var Keys = KeyMap{
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
-		key.WithHelp("tab", "Switch between views"),
+		key.WithHelp("tab", "focus next block list panel"),
 	),
 	DownloadBlocks: key.NewBinding(
 		key.WithKeys("ctrl+d"),
-		key.WithHelp("ctrl+d", "Download blocks"),
+		key.WithHelp("ctrl+d", "download blocks"),
 	),
 	AddNewRegistry: key.NewBinding(
-		key.WithKeys("ctrl+n"),
-		key.WithHelp("ctrl+n", "Add new registry"),
+		key.WithKeys("ctrl+a"),
+		key.WithHelp("ctrl+a", "add registry"),
 	),
 	S: key.NewBinding(
 		key.WithKeys("s"),
-		key.WithHelp("s", "Select registry"),
+		key.WithHelp("s", "focus registries panel"),
 	),
 	P: key.NewBinding(
 		key.WithKeys("p"),
-		key.WithHelp("p", "Edit category paths"),
+		key.WithHelp("p", "focus categories panel"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "Quit"),
+		key.WithHelp("ctrl+c", "quit"),
 	),
 }

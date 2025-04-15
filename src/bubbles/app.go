@@ -146,6 +146,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		msg.Height = msg.Height - 1
+		m.help.Width = msg.Width
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)

@@ -11,9 +11,9 @@ import (
 )
 
 type Model struct {
-	listView list.Model
-	blocks   []manifest.Block
-	focus    bool
+	list   list.Model
+	blocks []manifest.Block
+	focus  bool
 }
 
 func New() Model {
@@ -29,8 +29,8 @@ func New() Model {
 	}
 
 	return Model{
-		listView: list,
-		blocks:   []manifest.Block{},
+		list:   list,
+		blocks: []manifest.Block{},
 	}
 }
 
@@ -46,11 +46,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyBackspace:
 
-			listHasItems := m.listView.Items() != nil && len(m.listView.Items()) > 0
+			listHasItems := m.list.Items() != nil && len(m.list.Items()) > 0
 			if !listHasItems {
 				return m, nil
 			}
-			selectedItem := m.listView.SelectedItem().(block_list.ListItem)
+			selectedItem := m.list.SelectedItem().(block_list.ListItem)
 			var blocks []manifest.Block
 			for _, block := range m.blocks {
 				if block.Name != selectedItem.Name {
@@ -59,7 +59,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			return m, block_list.UpdateBlocks(blocks)
 		case tea.KeyEnter:
-			listHasItems := m.listView.Items() != nil && len(m.listView.Items()) > 0
+			listHasItems := m.list.Items() != nil && len(m.list.Items()) > 0
 			if !listHasItems {
 				return m, nil
 			}
@@ -76,7 +76,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			})
 
 		}
-		m.listView.SetItems(items)
+		cmd = m.list.SetItems(items)
 		return m, cmd
 
 	case tea.WindowSizeMsg:
@@ -84,13 +84,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.Width%2 != 0 {
 			margin = 3
 		}
-		m.listView.SetWidth((msg.Width-config.SidebarWidth)/2 - margin)
-		m.listView.SetHeight(msg.Height - 2)
+		m.list.SetWidth((msg.Width-config.SidebarWidth)/2 - margin)
+		m.list.Styles.HelpStyle = lipgloss.NewStyle().Width((msg.Width-config.SidebarWidth)/2 - margin)
+		m.list.SetHeight(msg.Height - 2)
 		return m, nil
 
 	}
 
-	m.listView, cmd = m.listView.Update(msg)
+	m.list, cmd = m.list.Update(msg)
 	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
 }
@@ -98,16 +99,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	if m.focus {
 		return lipgloss.NewStyle().
-			Width(m.listView.Width()).
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("140")).
-			Render(m.listView.View())
+			Render(m.list.View())
 	} else {
 		return lipgloss.NewStyle().
-			Width(m.listView.Width()).
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
-			Render(m.listView.View())
+			Render(m.list.View())
 	}
 }
 
@@ -120,5 +119,5 @@ func (m *Model) Blur() {
 }
 
 func (m *Model) SetHeight(height int) {
-	m.listView.SetHeight(height - 2)
+	m.list.SetHeight(height - 2)
 }

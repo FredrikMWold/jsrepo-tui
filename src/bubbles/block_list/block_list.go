@@ -83,9 +83,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				})
 			}
 		}
-		m.list.SetItems(items)
+		cmd = m.list.SetItems(items)
 	case tea.WindowSizeMsg:
 		m.list.SetWidth((msg.Width-config.SidebarWidth)/2 - 4)
+		m.list.Styles.HelpStyle = lipgloss.NewStyle().Width((msg.Width-config.SidebarWidth)/2 - 4)
 		m.list.SetHeight(msg.Height - 2)
 		return m, nil
 	case Blocks:
@@ -100,13 +101,11 @@ func (m Model) View() string {
 	var s string
 	if m.focus {
 		s += lipgloss.NewStyle().
-			Width(m.list.Width()).
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("140")).
 			Render(m.list.View())
 	} else {
 		s += lipgloss.NewStyle().
-			Width(m.list.Width()).
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
 			Render(m.list.View())
