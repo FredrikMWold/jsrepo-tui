@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type BannerErrorMessage string
+type ManifestErrorMessage string
 
 func GetManifest(provider string) tea.Cmd {
 	return func() tea.Msg {
@@ -24,18 +24,18 @@ func GetManifest(provider string) tea.Cmd {
 		url = fmt.Sprintf("%s%s", url, "/refs/heads/"+branch+"/jsrepo-manifest.json")
 		resp, err := http.Get(url)
 		if err != nil {
-			return BannerErrorMessage(err.Error())
+			return ManifestErrorMessage(err.Error())
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Print(err)
-			return BannerErrorMessage(err.Error())
+			return ManifestErrorMessage(err.Error())
 		}
 
 		if resp.StatusCode == 404 {
-			return BannerErrorMessage("Manifest not found")
+			return ManifestErrorMessage("Manifest not found")
 		}
 
 		var response ManifestResponse

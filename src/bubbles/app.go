@@ -2,20 +2,22 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	bannermessage "github.com/fredrikmwold/jsrepo-tui/src/bubbles/banner_message"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/block_list"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/categories_table"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/dependency_table"
+	downloadspinner "github.com/fredrikmwold/jsrepo-tui/src/bubbles/download_spinner"
 	keybindinghelp "github.com/fredrikmwold/jsrepo-tui/src/bubbles/key_binding_help"
+	newregistryinput "github.com/fredrikmwold/jsrepo-tui/src/bubbles/new_registry_input"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/registry_selector"
 	"github.com/fredrikmwold/jsrepo-tui/src/bubbles/selected_block_list"
+	downloadblocks "github.com/fredrikmwold/jsrepo-tui/src/commands/download_blocks"
 	"github.com/fredrikmwold/jsrepo-tui/src/commands/manifest"
 	"github.com/fredrikmwold/jsrepo-tui/src/config"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -31,25 +33,30 @@ type Model struct {
 	blocklist        block_list.Model
 	selectedBlocks   selected_block_list.Model
 	dependencytable  dependency_table.Model
-	newRegistryInput textinput.Model
+	newRegistryInput newregistryinput.Model
 	categoriestable  categories_table.Model
-	keys             keybindinghelp.KeyMap
+	bannermessage    bannermessage.Model
+	downloadspinner  downloadspinner.Model
 	help             help.Model
+
+	keys             keybindinghelp.KeyMap
+	isDownloading    bool
+	hasBannerMessage bool
 	width            int
+	height           int
 	active           int
-	error            manifest.BannerErrorMessage
 }
 
 func New() Model {
-	input := textinput.New()
-	input.Placeholder = "github/<username>/<repo>@<branch>"
 	return Model{
 		registryselector: registry_selector.New(),
 		blocklist:        block_list.New(),
 		selectedBlocks:   selected_block_list.New(),
 		dependencytable:  dependency_table.New(),
 		categoriestable:  categories_table.New(),
-		newRegistryInput: input,
+		newRegistryInput: newregistryinput.New(),
+		bannermessage:    bannermessage.New(),
+		downloadspinner:  downloadspinner.New(),
 		keys:             keybindinghelp.Keys,
 		help:             help.New(),
 	}
@@ -66,8 +73,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, m.keys.DownloadBlocks):
+			m.isDownloading = true
+			m.downloadspinner, cmd = m.downloadspinner.Update(msg)
+			cmds = append(cmds, cmd)
 			m.categoriestable, cmd = m.categoriestable.Update(msg)
-			return m, cmd
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
 		case key.Matches(msg, m.keys.Tab):
 			m.registryselector.Blur()
 			m.categoriestable.Blur()
@@ -100,7 +111,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.AddNewRegistry):
 			if m.active != newRegistryInput {
 				m.active = newRegistryInput
-				m.newRegistryInput.Focus()
+				m.active = newRegistryInput
 				m.registryselector.Blur()
 				m.blocklist.Blur()
 				m.categoriestable.Blur()
@@ -112,8 +123,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch msg.Type {
 		case tea.KeyEsc:
-			if m.error != manifest.BannerErrorMessage("") {
-				m.error = manifest.BannerErrorMessage("")
+			if m.hasBannerMessage {
+				m.hasBannerMessage = false
 				return m, nil
 			}
 			if m.active == newRegistryInput {
@@ -123,17 +134,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedBlocks.Blur()
 				return m, nil
 			}
-		case tea.KeyEnter:
-			if m.active == newRegistryInput {
-				registries := viper.GetStringSlice("registries")
-				registries = append(registries, m.newRegistryInput.Value())
-				viper.Set("registries", registries)
-				viper.WriteConfig()
-				m.active = selector
-				m.registryselector.Focus()
-				return m, config.LoadConfig
-			}
-
 		}
 	case block_list.Blocks:
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
@@ -143,22 +143,52 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 		msg.Height = msg.Height - 1
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.selectedBlocks, _ = m.selectedBlocks.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.dependencytable, _ = m.dependencytable.Update(msg)
 		m.categoriestable, _ = m.categoriestable.Update(msg)
+		m.newRegistryInput, _ = m.newRegistryInput.Update(msg)
+		m.bannermessage, _ = m.bannermessage.Update(msg)
+		m.downloadspinner, _ = m.downloadspinner.Update(msg)
 		return m, nil
 	case manifest.ManifestResponse:
 		m.registryselector, _ = m.registryselector.Update(msg)
 		m.blocklist, _ = m.blocklist.Update(msg)
 		m.categoriestable, _ = m.categoriestable.Update(msg)
+		if msg.Categories == nil {
+			return m, nil
+		}
 		m.active = listView
+		m.blocklist.Focus()
+		m.registryselector.Blur()
 		return m, nil
-	case manifest.BannerErrorMessage:
-		m.error = msg
+	case manifest.ManifestErrorMessage:
+		m.hasBannerMessage = true
+		m.bannermessage, _ = m.bannermessage.Update(msg)
+		return m, func() tea.Msg {
+			return manifest.ManifestResponse{}
+		}
+	case downloadblocks.DownloadBlocksErrorMessage:
+		m.hasBannerMessage = true
+		m.isDownloading = false
+		m.bannermessage, _ = m.bannermessage.Update(msg)
+	case downloadblocks.SuccessMessage:
+		m.hasBannerMessage = true
+		m.isDownloading = false
+		m.bannermessage, _ = m.bannermessage.Update(msg)
+		return m, nil
+	case config.Config:
+		m.registryselector, _ = m.registryselector.Update(msg)
+		m.active = selector
+		m.registryselector.Focus()
+		return m, nil
 	}
+
+	m.downloadspinner, cmd = m.downloadspinner.Update(msg)
+	cmds = append(cmds, cmd)
 
 	switch m.active {
 	case selector:
@@ -182,33 +212,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	var newRegistryView string
-	newRegistryHight := 0
+
+	if m.width <= 110 || m.height <= 25 {
+		return lipgloss.NewStyle().
+			Height(m.height).
+			Width(m.width).
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render(
+				lipgloss.JoinVertical(
+					lipgloss.Center,
+					"Terminal window is too small \n",
+					"Please resize the terminal window to at least 110x25"),
+			)
+
+	}
+
+	var bannerView string
+	bannerViewHeight := 0
 
 	helpView := m.help.View(m.keys)
 
 	if m.active == newRegistryInput {
-		m.newRegistryInput.Width = m.width - lipgloss.Width(m.dependencytable.View()) - 2
-		newRegistryView = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("140")).
-			Width(m.width - lipgloss.Width(m.dependencytable.View()) - 2).
-			Render(m.newRegistryInput.View())
-		newRegistryHight = lipgloss.Height(newRegistryView)
+		bannerView = m.newRegistryInput.View()
+		bannerViewHeight = lipgloss.Height(bannerView)
 	}
-	if m.error != manifest.BannerErrorMessage("") {
-		m.newRegistryInput.Width = m.width - lipgloss.Width(m.dependencytable.View()) - 2
-		newRegistryView = lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("9")).
-			Width(m.width-lipgloss.Width(m.dependencytable.View())-2).
-			Padding(0, 1).
-			Render(string(m.error))
-		newRegistryHight = lipgloss.Height(newRegistryView)
+	if m.hasBannerMessage {
+		bannerView = m.bannermessage.View()
+		bannerViewHeight = lipgloss.Height(bannerView)
+	}
+	if m.isDownloading {
+		bannerView = m.downloadspinner.View()
+		bannerViewHeight = lipgloss.Height(bannerView)
 	}
 
-	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - newRegistryHight)
-	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - newRegistryHight)
+	m.selectedBlocks.SetHeight(lipgloss.Height(m.selectedBlocks.View()) - bannerViewHeight)
+	m.blocklist.SetHeight(lipgloss.Height(m.blocklist.View()) - bannerViewHeight)
 
 	sidebar := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -218,7 +257,7 @@ func (m Model) View() string {
 	)
 
 	dashboard := lipgloss.JoinVertical(lipgloss.Left,
-		newRegistryView,
+		bannerView,
 		lipgloss.JoinHorizontal(lipgloss.Bottom,
 			m.blocklist.View(),
 			m.selectedBlocks.View(),
