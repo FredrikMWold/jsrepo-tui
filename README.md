@@ -16,7 +16,7 @@ Before using jsrepo-tui, make sure you have the `jsrepo` npm package installed. 
 	npm install jsrepo
 	```
 
-## Installation
+## Installationd
 
 There are two ways to install jsrepo-tui:
 
